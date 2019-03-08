@@ -24,6 +24,7 @@
 		sin      = SinOsc.ar(i*baseTune, 0, envelope);
 		output   = output + sin;
 	});
-	output
+	
+	output*SinOsc.kr(1/30, 0, 0.4, 0.6)
 }.play
 )
