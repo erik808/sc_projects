@@ -10,7 +10,7 @@ SynthDef.new(\sine, {
 	env = EnvGen.kr(Env.new([0,1,0], [atk, rel], [2,-2]), doneAction:2);
 	sig = sig * [1-pan,1+pan];
 
-	sig = sig * env * 0.1 * (1-(freq/1400));
+	sig = sig * env * 0.1 * (1-(freq/1200));
 	Out.ar(0, sig);
 }).add;
 
@@ -32,44 +32,71 @@ s.waitForBoot{
 	var w    = Window("test", Rect(10,10,300,700), false);
 	var u    = UserView(w, Rect(0,0,300,700));
 	var pat  = Pn(Pexprand(80,1400,inf).round(80), inf).asStream;
-	var rels = Pn(Pexprand(1,10,inf), inf).asStream;
+	var rels = Pn(Pexprand(0.7,1,inf), inf).asStream;
 	var pans = Pn(Pexprand(0.2,0.9,inf)-0.55, inf).asStream;
-	var amps = Pn(Pexprand(0.0,0.9,inf), inf).asStream;
-	var dets = Pn(Pexprand(0.05,3,inf)-1, inf).asStream;
+	var amps = Pn(Pexprand(0.0,0.8,inf), inf).asStream;
+	var dets = Pn(Pexprand(0.01,2,inf)-1, inf).asStream;
 
 	
-	var fre   = 0;
+	var fre   = 100;
+	var xlm   = 0.5;
 	var rl    = 1;
 	var pn    = 0;
 	var amp   = 0.8;
 	var det   = 0.0;
 
-	var nhis = 20;
+	var nhis = 30;
 	var xpos = Array.fill(nhis, 0);
 	var ypos = Array.fill(nhis, 0);
 
-	~fps=10;
+	var xhist = Array.new();
+	var yhist = Array.new();
+	
+
+	~slow=4;
+	~radius=1.5;
+	~lambda=3.0;
+	
 	u.drawFunc={
-		if(u.frame%(150/~fps)==0, {
-			fre = pat.next;
+		if(u.frame%(1*~slow)==0, {
+			xlm = ~lambda * xlm * (1.0 - xlm);
+			fre = (xlm * 1000).round(60)/1.5;
 			rl  = rels.next;
 			pn  = pans.next;
 			amp = amps.next;
 			det = dets.next;
 			x = Synth(\sine, [\freq, fre, \rel, rl, \pan, pn, \det, det ]);
 
-			xpos.addFirst(150+(pn*150));
-			ypos.addFirst(550-(fre/3));
-			xpos.removeAt(xpos.size()-1);
-			ypos.removeAt(ypos.size()-1);
+			xpos.removeAt(0);
+			ypos.removeAt(0);
+			xpos.insert(xpos.size(), (200*~lambda)-550);
+			ypos.insert(xpos.size(), 700-(700*xlm));
 		});
-		
 
-		xpos.do({
+		if( (u.frame%(200*~slow)==0) && ((~lambda+0.03) < 4), {
+			~lambda=~lambda+0.05;
+			~lambda.postln;
+			xhist = xhist ++ xpos;
+			yhist = yhist ++ ypos;
+			xhist.size.postln;
+		});
+
+		if ( (xhist.size > 0),
+			{
+				xhist.do({
+					arg item, i;
+					Pen.fillColor   = Color.grey(0.4);
+					Pen.strokeColor = Color.grey(0.4);
+					Pen.fillOval(Rect.aboutPoint(Point(xhist.at(i),yhist.at(i)), ~radius, ~radius));
+				});
+			}
+		);
+			
+		xpos.reverseDo({
 			arg item, i;
-			Pen.fillColor   = Color.grey(1-(i/xpos.size()));
-			Pen.strokeColor = Color.grey(1-(i/xpos.size()));
-			Pen.fillOval(Rect.aboutPoint(Point(item,ypos.at(i)), 5, 5));
+			Pen.fillColor   = Color.grey((i/xpos.size())**2);
+			Pen.strokeColor = Color.grey((i/xpos.size())**2);
+			Pen.fillOval(Rect.aboutPoint(Point(xpos.at(i),ypos.at(i)), ~radius, ~radius));
 		});
 
 	};
@@ -81,5 +108,9 @@ s.waitForBoot{
 	CmdPeriod.doOnce({if(w.isClosed.not, {w.close})});
 };
 )
+
+~radius = 2.0;
+~slow=1;
+~lambda=3.40;
 
  s.plotTree;
