@@ -14,13 +14,13 @@ SynthDef.new(\sine, {
 	Out.ar(0, sig);
 }).add;
 
-// p = Pbind(
-// 	\instrument, \sine,
-// 	\amp, 0.5,
-// 	\dur,  Pexprand(0.15, 0.9, 50).round(0.15),
-// 	\rel,  Pexprand(0.1, 2.0, inf),
-// 	\freq, Pexprand(200, 2000, inf).round(50)
-// ).play;
+p = Pbind(
+	\instrument, \sine,
+	\amp, 0.5,
+	\dur,  Pexprand(0.15, 0.9, 50).round(0.15),
+	\rel,  Pexprand(0.1, 2.0, inf),
+	\freq, Pexprand(200, 2000, inf).round(50)
+).play;
 )
 
 p.stop;
@@ -32,15 +32,17 @@ s.waitForBoot{
 	var w    = Window("test", Rect(10,10,300,700), false);
 	var u    = UserView(w, Rect(0,0,300,700));
 	var pat  = Pn(Pexprand(80,1400,inf).round(80), inf).asStream;
-	var rels = Pn(Pexprand(0.7,1,inf), inf).asStream;
-	var pans = Pn(Pexprand(0.2,0.9,inf)-0.55, inf).asStream;
+	var rels = Pn(Pexprand(0.4,4,inf), inf).asStream;
+	var atks = Pn(Pexprand(0.001,0.5,inf), inf).asStream;
+	var pans = Pn(1.5*(Pwhite(0.1,0.9,inf)-0.5), inf).asStream;
 	var amps = Pn(Pexprand(0.0,0.8,inf), inf).asStream;
-	var dets = Pn(Pexprand(0.01,2,inf)-1, inf).asStream;
+	var dets = Pn(Pwhite(0.01,4,inf)-1, inf).asStream;
 
 	
 	var fre   = 100;
 	var xlm   = 0.5;
 	var rl    = 1;
+	var at    = 1;
 	var pn    = 0;
 	var amp   = 0.8;
 	var det   = 0.0;
@@ -53,19 +55,20 @@ s.waitForBoot{
 	var yhist = Array.new();
 	
 
-	~slow=4;
+	~slow=2;
 	~radius=1.5;
-	~lambda=3.0;
+	~lambda=3.3;
 	
 	u.drawFunc={
 		if(u.frame%(1*~slow)==0, {
 			xlm = ~lambda * xlm * (1.0 - xlm);
-			fre = (xlm * 1000).round(60)/1.5;
+			fre = (xlm * 1400).round(80)/2;
 			rl  = rels.next;
+			at  = atks.next;
 			pn  = pans.next;
 			amp = amps.next;
 			det = dets.next;
-			x = Synth(\sine, [\freq, fre, \rel, rl, \pan, pn, \det, det ]);
+			x = Synth(\sine, [\freq, fre, \rel, rl, \atk, at, \pan, pn, \det, det ]);
 
 			xpos.removeAt(0);
 			ypos.removeAt(0);
@@ -73,8 +76,8 @@ s.waitForBoot{
 			ypos.insert(xpos.size(), 700-(700*xlm));
 		});
 
-		if( (u.frame%(200*~slow)==0) && ((~lambda+0.03) < 4), {
-			~lambda=~lambda+0.05;
+		if( (u.frame%(200*~slow)==0) && ((~lambda+0.02) < 4), {
+			~lambda=~lambda+0.02;
 			~lambda.postln;
 			xhist = xhist ++ xpos;
 			yhist = yhist ++ ypos;
@@ -109,8 +112,8 @@ s.waitForBoot{
 };
 )
 
-~radius = 2.0;
+~radius = 3.5;
 ~slow=1;
-~lambda=3.40;
+~lambda=3.0;
 
  s.plotTree;
